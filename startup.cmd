@@ -1,0 +1,3 @@
+@echo off
+echo Starting DASS-21 API...
+python dass21_predictor.py
