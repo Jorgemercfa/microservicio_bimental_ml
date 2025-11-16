@@ -102,35 +102,40 @@ async def lifespan(app: FastAPI):
     logger.info("🛑 API DASS-21 detenida")
 
 # -----------------------------
-# FASTAPI APP
+# FASTAPI APP CON CORS MEJORADO
 # -----------------------------
 app = FastAPI(title="DASS-21 API", version="2.0", lifespan=lifespan)
 
+# CORS MEJORADO - SOLUCIÓN DEFINITIVA
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Permite todos los orígenes
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Permite todos los métodos
+    allow_headers=["*"],  # Permite todos los headers
 )
 
 # -----------------------------
-# ENDPOINTS
+# ENDPOINTS MEJORADOS
 # -----------------------------
 @app.post("/predict/")
 async def predict_scores(request: TextListRequest):
+    logger.info(f"📊 Recibida solicitud /predict con {len(request.respuestas)} respuestas")
+    
     if len(request.respuestas) != 21:
         raise HTTPException(422, "Debe enviar exactamente 21 respuestas")
     
     try:
         result = predictor.predict_scores(request.respuestas)
+        logger.info(f"✅ Predicción exitosa: D={result['depresion']}, A={result['ansiedad']}, E={result['estres']}")
         return result
     except Exception as e:
-        logger.error(f"Error en /predict: {e}")
+        logger.error(f"❌ Error en /predict: {e}")
         raise HTTPException(500, f"Error al procesar: {str(e)}")
 
 def consultar_openai(mensaje: str) -> str:
     if not OPENAI_API_KEY:
+        logger.error("❌ OPENAI_API_KEY no configurada")
         return "Servicio de chat no configurado. Contacte al administrador."
     
     try:
@@ -144,6 +149,8 @@ def consultar_openai(mensaje: str) -> str:
             "temperature": 0.7,
         }
         
+        logger.info(f"🤖 Consultando OpenAI: {mensaje[:50]}...")
+        
         response = requests.post(
             OPENAI_API_URL,
             headers={
@@ -155,12 +162,15 @@ def consultar_openai(mensaje: str) -> str:
         )
         
         if response.status_code == 200:
-            return response.json()["choices"][0]["message"]["content"].strip()
+            respuesta = response.json()["choices"][0]["message"]["content"].strip()
+            logger.info("✅ Respuesta OpenAI recibida")
+            return respuesta
         else:
+            logger.error(f"❌ Error OpenAI: {response.status_code}")
             return "Lo siento, no puedo responder en este momento."
             
     except Exception as e:
-        logger.error(f"Error OpenAI: {e}")
+        logger.error(f"❌ Error consultando OpenAI: {e}")
         return "Error temporal del servicio."
 
 @app.post("/chat/")
@@ -170,13 +180,16 @@ async def chat_with_user(request: ChatRequest):
         if not user_message:
             raise HTTPException(400, "El mensaje no puede estar vacío")
         
+        logger.info(f"💬 Mensaje recibido: {user_message}")
         respuesta = consultar_openai(user_message)
+        logger.info(f"💭 Respuesta enviada: {respuesta[:50]}...")
+        
         return {"respuesta": respuesta}
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error en /chat: {e}")
+        logger.error(f"❌ Error en /chat: {e}")
         raise HTTPException(500, "Error interno del servidor")
 
 @app.get("/health")
@@ -186,7 +199,8 @@ async def health_check():
         "message": "API DASS-21 funcionando correctamente",
         "version": "2.0",
         "predictor_loaded": predictor is not None,
-        "openai_configured": bool(OPENAI_API_KEY)
+        "openai_configured": bool(OPENAI_API_KEY),
+        "timestamp": "2025-11-16T05:00:00Z"
     }
 
 @app.get("/")
@@ -194,7 +208,12 @@ async def read_root():
     return {
         "message": "API DASS-21 Predictor", 
         "version": "2.0",
-        "status": "active"
+        "status": "active",
+        "endpoints": {
+            "/health": "GET - Estado del servicio",
+            "/predict": "POST - Evaluación DASS-21", 
+            "/chat": "POST - Chat de apoyo emocional"
+        }
     }
 
 # -----------------------------
