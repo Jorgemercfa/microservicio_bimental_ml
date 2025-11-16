@@ -296,8 +296,17 @@ def read_root():
         "status": "active"
     }
 
+# === SOLUCIÓN: CONFIGURACIÓN ESPECÍFICA PARA RAILWAY ===
+# AGREGAR ESTO AL FINAL DEL ARCHIVO
+
+# CONFIGURACIÓN ESPECÍFICA PARA RAILWAY
+import os
+# Forzar el puerto que Railway espera
+if "RAILWAY_STATIC_URL" in os.environ:
+    os.environ["PORT"] = "8080"
+
 # === main ===
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", 8080))  # CAMBIADO de 8000 a 8080 para Railway
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
