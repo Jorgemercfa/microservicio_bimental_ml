@@ -391,18 +391,8 @@ def read_root():
         "status": "active"
     }
 
-# === CONFIGURACIÓN ESPECÍFICA PARA AZURE ===
+# === main ===
 if __name__ == "__main__":
     import uvicorn
-    # Puerto específico para Azure App Service
     port = int(os.environ.get("PORT", 8000))
-    logger.info(f"🚀 Iniciando servidor en puerto: {port}")
-    logger.info(f"🔑 OpenAI API Key configurada: {'SÍ' if OPENAI_API_KEY else 'NO'}")
-    
-    uvicorn.run(
-        app, 
-        host="0.0.0.0", 
-        port=port,
-        timeout_keep_alive=300,
-        log_level="info"
-    )
+    uvicorn.run(app, host="0.0.0.0", port=port)
